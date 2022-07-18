@@ -8,7 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import java.text.DateFormat;
 import java.util.Date;
-
 public class ChatController {
     private String dateFormatString;
     private String message;
