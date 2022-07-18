@@ -3,12 +3,14 @@ package chatClient;
 import chatClient.controllers.ChatController;
 import chatClient.controllers.SignController;
 import chatClient.models.Network;
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import java.io.IOException;
 
 public class StartClient extends Application {
@@ -17,17 +19,15 @@ public class StartClient extends Application {
     private Stage primaryStage;
     private Stage authStage;
     private ChatController chatController;
-
     private SignController signController;
+    private PauseTransition delay;
 
     @Override
     public void start(Stage stage) throws IOException {
         primaryStage = stage;
-
         network = new Network();
         network.setStartClient(this);
         network.connect();
-
         openAuthDialog();
         createChatDialog();
     }
@@ -35,19 +35,22 @@ public class StartClient extends Application {
     private void openAuthDialog() throws IOException {
         FXMLLoader authLoader = new FXMLLoader(StartClient.class.getResource("auth-view.fxml"));
         authStage = new Stage();
-        Scene scene = new Scene(authLoader.load(), 600, 400);
-
-        authStage.setScene(scene);
         authStage.initModality(Modality.WINDOW_MODAL);
         authStage.initOwner(primaryStage);
-        authStage.setTitle("Authentication");
-        authStage.setAlwaysOnTop(true);
+        Scene scene = new Scene(authLoader.load(), 600, 400);
+        authStage.setTitle("Authentication!");
+        authStage.setScene(scene);
         authStage.show();
 
-        SignController signController = authLoader.getController();
+        delay = new PauseTransition(Duration.seconds(120));
+        delay.setOnFinished(event -> {
+            authStage.close();
+            showInfoAlert("Ошибка!", "Время для аторизации истекло. Подключитесь заново.");
+        });
+        delay.play();
 
+        signController = authLoader.getController();
         signController.setNetwork(network);
-
         signController.setStartClient(this);
     }
 
@@ -64,10 +67,10 @@ public class StartClient extends Application {
     }
 
     public void openChatDialog() {
+        delay.stop();
         authStage.close();
         primaryStage.show();
-        primaryStage.setTitle("Messanger");
-
+        primaryStage.setTitle("Messenger");
         network.waitMessage(chatController);
         chatController.setUsernameTitle(network.getUsername());
     }

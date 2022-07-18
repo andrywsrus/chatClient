@@ -3,35 +3,36 @@ package chatClient.models;
 import chatClient.StartClient;
 import chatClient.controllers.ChatController;
 import javafx.application.Platform;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class Network {
     private static final String AUTH_CMD_PREFIX = "/auth"; // + login + password
     private static final String AUTHOK_CMD_PREFIX = "/authok"; // + username
-
     private static final String AUTHERR_CMD_PREFIX = "/autherr"; // + error message
     private static final String CLIENT_MSG_CMD_PREFIX = "/cMsg"; // + msg
     private static final String SERVER_MSG_CMD_PREFIX = "/sMsg"; // + msg
     private static final String PRIVATE_MSG_CMD_PREFIX = "/pm"; // + username + msg
-
     private static final String STOP_SERVER_CMD_PREFIX = "/stop";
-
     private static final String END_CLIENT_CMD_PREFIX = "/end";
+    private static final String SERVER_MSG_USER_ONLINE = "/online";
     public static final String DEFAULT_HOST = "localhost";
     public static final int DEFAULT_PORT = 8888;
+
     private final String host;
     private final int port;
-    private DataOutputStream out;
     private DataInputStream in;
-
-    private ChatController chatController;
+    private DataOutputStream out;
     private String username;
     private StartClient startClient;
+
+    public String[] getOnlineClient() {
+        return onlineClient;
+    }
+
+    private String[] onlineClient;
 
     public Network(String host, int port) {
         this.host = host;
@@ -39,48 +40,42 @@ public class Network {
     }
 
     public Network() {
-        this(DEFAULT_HOST, DEFAULT_PORT);
+        this(DEFAULT_HOST,DEFAULT_PORT);
     }
 
-    public void connect() {
+    public void connect(){
         try {
             Socket socket = new Socket(host, port);
-
-            in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
-
-
+            in = new DataInputStream(socket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
             startClient.showErrorAlert("Ошибка подключения","Соединение не установлено");
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(String message){
         try {
-            out.writeUTF(String.format("%s %s", CLIENT_MSG_CMD_PREFIX, message));
+            out.writeUTF(String.format("%s %s",CLIENT_MSG_CMD_PREFIX, message));
         } catch (IOException e) {
             e.printStackTrace();
-            startClient.showErrorAlert("Ошибка подключения","Соединение не установлено");
-
+            System.out.println("Ошибка при отправке сообщения");
+            startClient.showErrorAlert("Ошибка подключения","Ошибка при отправке сообщения");
         }
     }
-
-    public void sendPrivateMessage(String recipient, String message) {
+    public void sendPrivateMessage(String recipient, String message){
         try {
-            out.writeUTF(String.format("%s %s %s", PRIVATE_MSG_CMD_PREFIX, recipient, message));
+            out.writeUTF(String.format("%s %s %s",PRIVATE_MSG_CMD_PREFIX, recipient, message));
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Ошибка при отправке сообщения");
         }
     }
 
-
     public String sendAuthMessage(String login, String password) {
         try {
             out.writeUTF(String.format("%s %s %s", AUTH_CMD_PREFIX, login, password));
             String response = in.readUTF();
-
             if (response.startsWith(AUTHOK_CMD_PREFIX)) {
                 this.username = response.split("\\s+", 2)[1];
                 return null;
@@ -131,6 +126,11 @@ public class Network {
 
                             chatController.appendServerMessage(serverMessage);
                         }
+                        case SERVER_MSG_USER_ONLINE -> {
+                            String[] parts = message.split("\\s+", 2);
+                            onlineClient = parts[1].split(";");
+                            chatController.userOnline();
+                        }
                     }
                 }
             } catch (IOException e) {
@@ -142,31 +142,13 @@ public class Network {
         t.start();
     }
 
-    public DataOutputStream getOut() {
-        return out;
-    }
-
-    public void setOut(DataOutputStream out) {
-        this.out = out;
-    }
-
-    public DataInputStream getIn() {
-        return in;
-    }
-
-    public void setIn(DataInputStream in) {
-        this.in = in;
-    }
-
     public String getUsername() {
         return username;
     }
 
+
     public void setStartClient(StartClient startClient) {
         this.startClient = startClient;
-    }
 
-    public StartClient getStartClient() {
-        return startClient;
     }
 }
