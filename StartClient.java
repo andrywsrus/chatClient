@@ -14,7 +14,6 @@ import javafx.util.Duration;
 import java.io.IOException;
 
 public class StartClient extends Application {
-
     private Network network;
     private Stage primaryStage;
     private Stage authStage;
